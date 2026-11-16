@@ -1,0 +1,28 @@
+{
+  "name": "twst-solver",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "sync:data": "node scripts/sync-data.mjs",
+    "sync:icons": "node scripts/sync-icons.mjs",
+    "sync": "npm run sync:data && npm run sync:icons",
+    "deploy": "npm run sync && npm run build && gh-pages -d dist --no-history --nojekyll",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "cli": "vite-node scripts/cli.ts"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "gh-pages": "^6.2.0",
+    "sharp": "^0.33.5",
+    "typescript": "5.6.3",
+    "vite": "5.4.11",
+    "vite-node": "2.1.8",
+    "vitest": "2.1.8"
+  },
+  "dependencies": {
+    "preact": "^10.25.4"
+  }
+}

@@ -1,0 +1,7 @@
+node_modules
+dist
+# 上游資料（simulator repo 無授權條款，不重新發布）
+public/data/
+samples/
+.cache/
+public/icons/
