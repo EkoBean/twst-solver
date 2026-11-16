@@ -342,3 +342,5 @@ input[type="number"], select {
 .elem-row select { flex: 0 0 90px; }
 .none-chip { margin-bottom: 6px; }
 .slot-chara { min-width: 0; }
+.ctl-title { margin: 14px 0 4px; font-size: 0.85rem; color: var(--accent-text); }
+.ctl-title:first-child { margin-top: 4px; }

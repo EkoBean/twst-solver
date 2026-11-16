@@ -42,6 +42,9 @@ export interface HandEntry {
 
 /** BAL = Balance：HP 與 ATK 權重相同，不加倍率 */
 export type StatPriority = 'HP' | 'ATK' | 'BAL';
+/** 卡片類型（chara.json 的 attr）。バランス 在這裡代表「不指定」。 */
+export type CardTypePref = 'アタック' | 'ディフェンス' | 'バランス';
+
 export type RankPriority = 'duo' | 'buddy';
 export type Element = '火' | '水' | '木' | '無';
 
@@ -55,6 +58,8 @@ export interface Weights {
   crit: { 小: number; 中: number; 大: number };
   /** 相互 DUO（a 的 DUO 是 b、b 的 DUO 也是 a）每一對角色加的分數，0 = 不加 */
   mutualDuo: number;
+  /** 優先放哪一種類型的卡；バランス = 不管 */
+  cardType: CardTypePref;
 }
 
 export const DEFAULT_WEIGHTS: Weights = {
@@ -63,11 +68,14 @@ export const DEFAULT_WEIGHTS: Weights = {
   sizes: { 極小: 0.5, 小: 1, 中: 2, 大: 3 },
   crit: { 小: 0.5, 中: 1, 大: 1.5 },
   mutualDuo: 0.5,
+  cardType: 'バランス',
 };
 
 export interface TeamScore {
   duo: number;
   buddy: number;
+  /** 隊上符合「優先類型」的卡數（優先類型為 バランス 時一律 0） */
+  typed: number;
   /** 依 RankPriority 合成的單一排序值 */
   total: number;
 }

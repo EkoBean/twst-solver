@@ -1,7 +1,7 @@
 import { createStore, type Store } from './store';
-import type { Element, RankPriority, StatPriority } from './types';
+import type { CardTypePref, Element, RankPriority, StatPriority } from './types';
 
-export type SolverMode = '4' | '5' | '4+1';
+export type SolverMode = '5' | '4+1';
 
 export interface Settings {
   // 手牌設定頁
@@ -12,6 +12,7 @@ export interface Settings {
   element: Element | null;
   rank: RankPriority;
   stat: StatPriority;
+  cardType: CardTypePref;
   wMul: number;
   wSmall: number;
   wMid: number;
@@ -28,6 +29,7 @@ export const DEFAULT_SETTINGS: Settings = {
   element: null,
   rank: 'duo',
   stat: 'ATK',
+  cardType: 'バランス',
   wMul: 2,
   wSmall: 1,
   wMid: 2,
@@ -38,8 +40,13 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 export const settingsStore = createStore<Settings>('twst-solver/settings/v1', DEFAULT_SETTINGS, (v) =>
-  v && typeof v === 'object' ? { ...DEFAULT_SETTINGS, ...(v as Partial<Settings>) } : null,
+  v && typeof v === 'object' ? migrate({ ...DEFAULT_SETTINGS, ...(v as Partial<Settings>) }) : null,
 );
+
+/** 舊版有「4 張」模式，已移除；存過的設定改成 5 張。 */
+function migrate(s: Settings): Settings {
+  return (s.mode as string) === '4' ? { ...s, mode: '5' } : s;
+}
 
 export function patchSettings(patch: Partial<Settings>): void {
   settingsStore.set((s) => ({ ...s, ...patch }));
@@ -47,8 +54,9 @@ export function patchSettings(patch: Partial<Settings>): void {
 
 /** 新卡效益頁自己的一份參數：和「現有隊伍最優解」互不影響。 */
 export const newCardSettingsStore = createStore<Settings>('twst-solver/newcard-settings/v1', DEFAULT_SETTINGS, (v) =>
-  v && typeof v === 'object' ? { ...DEFAULT_SETTINGS, ...(v as Partial<Settings>) } : null,
+  v && typeof v === 'object' ? migrate({ ...DEFAULT_SETTINGS, ...(v as Partial<Settings>) }) : null,
 );
+
 
 export function patchStore(store: Store<Settings>, patch: Partial<Settings>): void {
   store.set((s) => ({ ...s, ...patch }));

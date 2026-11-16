@@ -30,6 +30,8 @@ export interface PreparedCard {
   card: Card;
   /** 該卡使用的 buddy 技能分（已依手牌突破狀態選好 s / s_totsu） */
   slots: { char: string; w: number }[];
+  /** 1 = 這張卡的類型就是使用者優先的類型 */
+  typeMatch: 0 | 1;
 }
 
 /** useTotsu 為真時用 buddy*s_totsu，否則用 buddy*s。 */
@@ -39,16 +41,21 @@ export function prepareCard(card: Card, useTotsu: boolean, weights: Weights): Pr
     : [card.buddy1s, card.buddy2s, card.buddy3s];
   const chars = [card.buddy1c, card.buddy2c, card.buddy3c];
   const slots = chars.map((char, i) => ({ char, w: parseSkill(raw[i] ?? '', weights) }));
-  return { card, slots };
+  const typeMatch = weights.cardType !== 'バランス' && card.attr === weights.cardType ? 1 : 0;
+  return { card, slots, typeMatch };
 }
 
 export function hasElement(card: Card, element: Element): boolean {
   return card.magic1atr === element || card.magic2atr === element || card.magic3atr === element;
 }
 
-function combine(duo: number, buddy: number, rank: RankPriority): number {
-  // buddy 分遠小於 1000，所以 *1000 等於字典序比較（先比主要項，同分才比次要項）
-  return rank === 'duo' ? duo * 1000 + buddy : buddy * 1000 + duo;
+// 三層字典序：主要項 > 次要項 > 類型相符的卡數。每層的最小單位（0.5）都大於下一層的最大值，
+// 所以直接加總就等於逐層比較；而且是「每張卡各自一份」，求解器的精確性不受影響。
+const HI = 1e6;
+const LO = 1e3;
+
+function combine(duo: number, buddy: number, rank: RankPriority, typed = 0): number {
+  return rank === 'duo' ? duo * HI + buddy * LO + typed : buddy * HI + duo * LO + typed;
 }
 
 /** 參考實作：直接算一支隊伍的分數。求解器的結果必須與它一致。 */
@@ -61,7 +68,8 @@ export function scoreTeam(team: PreparedCard[], rank: RankPriority, mutual = 0):
     for (const s of p.slots) if (s.w > 0 && set.has(s.char)) buddy += s.w;
   }
   duo += mutual * mutualPairs(team.map((p) => p.card)).length;
-  return { duo, buddy, total: combine(duo, buddy, rank) };
+  const typed = team.reduce((n, p) => n + p.typeMatch, 0);
+  return { duo, buddy, typed, total: combine(duo, buddy, rank, typed) };
 }
 
 /** 隊上互相 DUO 的角色對（a 的卡指向 b，b 的卡也指向 a），每對只列一次。 */
@@ -114,7 +122,7 @@ function cardValue(c: Indexed, member: Uint8Array, rank: RankPriority): number {
     const ci = c.slotCi[i] as number;
     if (ci >= 0 && member[ci]) buddy += c.slotW[i] as number;
   }
-  return combine(duo, buddy, rank);
+  return combine(duo, buddy, rank, c.p.typeMatch);
 }
 
 /** 枚舉 universe 的所有大小 1..maxSize 的子集，逐一呼叫 visit。 */
@@ -232,7 +240,7 @@ function coverWithMutual(
       if (has(a, b) && has(b, a)) pairs.push([a, b]);
     }
   }
-  const unit = rank === 'duo' ? mutual * 1000 : mutual;
+  const unit = rank === 'duo' ? mutual * HI : mutual * LO;
   let best: { total: number; cards: Indexed[] } | null = null;
   for (let mask = 0; mask < 1 << pairs.length; mask++) {
     const extras: Indexed[] = [];

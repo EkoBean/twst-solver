@@ -195,3 +195,38 @@ describe('相互 DUO 加分：與暴力枚舉一致', () => {
     });
   }
 });
+
+describe('卡片類型優先：只在 DUO / buddy 同分時決勝，且與暴力枚舉一致', () => {
+  const ATTRS = ['アタック', 'ディフェンス', 'バランス'];
+  const W = { ...DEFAULT_WEIGHTS, cardType: 'アタック' as const };
+  const withAttr = (r: () => number, name: string): Card => ({ ...randomCard(r, name), attr: ATTRS[Math.floor(r() * 3)] as string });
+  const prep = (cards: Card[]) => cards.map((c) => prepareCard(c, true, W));
+
+  for (const rank of ['duo', 'buddy'] as RankPriority[]) {
+    it(`solveOwned / 4+1 / 固定卡 rank=${rank}`, () => {
+      for (let seed = 1; seed <= 8; seed++) {
+        const r = rng(seed * 4177);
+        const owned = prep(Array.from({ length: 11 }, (_, i) => withAttr(r, `o${i}`)));
+        const supports = prep(Array.from({ length: 5 }, (_, i) => withAttr(r, `s${i}`)));
+        const fixed = prep([withAttr(r, 'NEW')])[0] as PreparedCard;
+        const M = 0.5;
+        const b5 = Math.max(...combos(owned, 5).map((t) => scoreTeam(t, rank, M).total));
+        expect(solveOwned(owned, 5, rank, 2, undefined, M)[0]?.score.total, `5 seed=${seed}`).toBe(b5);
+        let b41 = -Infinity;
+        for (const t of combos(owned, 4)) for (const sp of supports) b41 = Math.max(b41, scoreTeam([...t, sp], rank, M).total);
+        expect(solveWithSupport(owned, supports, rank, 2, undefined, M)[0]?.team.score.total, `4+1 seed=${seed}`).toBe(b41);
+        const bf = Math.max(...combos(owned, 4).map((t) => scoreTeam([...t, fixed], rank, M).total));
+        expect(solveOwned(owned, 5, rank, 2, fixed, M)[0]?.score.total, `fixed seed=${seed}`).toBe(bf);
+      }
+    });
+  }
+
+  it('DUO / buddy 不同分時，類型不會蓋過它們', () => {
+    const r = rng(7);
+    const owned = prep(Array.from({ length: 12 }, (_, i) => withAttr(r, `o${i}`)));
+    const base = solveOwned(prepAll(owned.map((p) => p.card), true), 5, 'duo', 1)[0] as { score: { duo: number; buddy: number } };
+    const typed = solveOwned(owned, 5, 'duo', 1)[0] as { score: { duo: number; buddy: number } };
+    expect(typed.score.duo).toBe(base.score.duo);
+    expect(typed.score.buddy).toBe(base.score.buddy);
+  });
+});

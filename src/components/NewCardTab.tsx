@@ -5,7 +5,7 @@ import { useT } from '../i18n';
 import { newCardSettingsStore } from '../settings';
 import { prepareCard, hasElement, solveOwned, solveWithSupport } from '../solver';
 import { useStore } from '../store';
-import type { Card, Element, TeamResult } from '../types';
+import type { Card, CardTypePref, Element, TeamResult } from '../types';
 import { CardTile } from './CardTile';
 import { CharaPicker } from './CharaPicker';
 import { Collapse } from './Collapse';
@@ -27,6 +27,11 @@ const NEW_NAME = '__new_card__';
 const SIZES: Size[] = ['極小', '小', '中', '大'];
 const CRITS: Crit[] = ['小', '中', '大'];
 const ELEMS: Element[] = ['火', '水', '木', '無'];
+const TYPE_OPTIONS: [CardTypePref, 'solver.cardType.attack' | 'solver.cardType.defense' | 'solver.cardType.balance'][] = [
+  ['アタック', 'solver.cardType.attack'],
+  ['ディフェンス', 'solver.cardType.defense'],
+  ['バランス', 'solver.cardType.balance'],
+];
 const emptySlot = (): Slot => ({ chara: '', hp: '', atk: '', crit: '' });
 
 /** 把 HP / ATK / クリティカル 三個下拉選單組回 buddy 技能字串，格式與 chara.json 相同。 */
@@ -61,6 +66,7 @@ export function NewCardTab({ catalog, goHand }: { catalog: Catalog; goHand: () =
   const [mChara, setMChara] = useState('');
   const [mElems, setMElems] = useState<(Element | '')[]>(['', '', '']);
   const [mDuo, setMDuo] = useState('');
+  const [mType, setMType] = useState<CardTypePref>('バランス');
   const [slots, setSlots] = useState<Slot[]>([emptySlot(), emptySlot(), emptySlot()]);
   const [out, setOut] = useState<Result | null>(null);
   const [busy, setBusy] = useState(false);
@@ -85,7 +91,7 @@ export function NewCardTab({ catalog, goHand }: { catalog: Catalog; goHand: () =
       chara: mChara,
       costume: 'NEW',
       rare: 'SSR',
-      attr: '',
+      attr: mType,
       duo: mDuo,
       buddy1c: slots[0]?.chara ?? '',
       buddy2c: slots[1]?.chara ?? '',
@@ -212,6 +218,16 @@ export function NewCardTab({ catalog, goHand }: { catalog: Catalog; goHand: () =
                       <option value="">{t('new.field.skip')}</option>
                       {ELEMS.map((x) => <option key={x} value={x}>{x}</option>)}
                     </select>
+                  ))}
+                </div>
+              </div>
+              <div class="field">
+                <span class="field-label">{t('new.field.cardType')}</span>
+                <div class="seg" role="group">
+                  {TYPE_OPTIONS.map(([v, k]) => (
+                    <button key={v} type="button" class={`seg-btn${mType === v ? ' on' : ''}`} onClick={() => setMType(v)}>
+                      {t(k).replace(/（.*）/, '')}
+                    </button>
                   ))}
                 </div>
               </div>

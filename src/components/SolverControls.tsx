@@ -2,7 +2,7 @@ import { ELEMENTS } from '../data';
 import { useT } from '../i18n';
 import { patchStore, type Settings, type SolverMode } from '../settings';
 import { useStore, type Store } from '../store';
-import { DEFAULT_WEIGHTS, type Element, type RankPriority, type StatPriority, type Weights } from '../types';
+import { DEFAULT_WEIGHTS, type CardTypePref, type Element, type RankPriority, type StatPriority, type Weights } from '../types';
 
 export function weightsOf(s: Settings): Weights {
   return {
@@ -11,6 +11,7 @@ export function weightsOf(s: Settings): Weights {
     sizes: { ...DEFAULT_WEIGHTS.sizes, 小: s.wSmall, 中: s.wMid, 大: s.wBig },
     crit: { ...DEFAULT_WEIGHTS.crit, 小: s.wCritS, 中: s.wCritM },
     mutualDuo: s.wMutual,
+    cardType: s.cardType,
   };
 }
 
@@ -48,31 +49,29 @@ function NumberField(props: { label: string; value: number; step?: number; onCha
 }
 
 
-/** 求解參數面板（模式、排序、能力、屬性、權重）。「最優解」與「新卡效益」各傳自己的 store，設定互不影響。 */
+/** 求解參數面板（模式、卡片設定、能力設定、權重）。「最優解」與「新卡效益」各傳自己的 store，設定互不影響。 */
 export function SolverControls({ store }: { store: Store<Settings> }) {
   const { t } = useT();
   const s = useStore(store);
   const modes: { value: SolverMode; label: string }[] = [
-    { value: '4', label: t('solver.mode.4') },
     { value: '5', label: t('solver.mode.5') },
     { value: '4+1', label: t('solver.mode.4+1') },
   ];
+  const types: { value: CardTypePref; label: string }[] = [
+    { value: 'アタック', label: t('solver.cardType.attack') },
+    { value: 'ディフェンス', label: t('solver.cardType.defense') },
+    { value: 'バランス', label: t('solver.cardType.balance') },
+  ];
   return (
     <>
+        <h4 class="ctl-title">{t('solver.sec.mode')}</h4>
         <div class="controls">
           <Segmented<SolverMode> label={t('solver.mode')} value={s.mode} options={modes} onChange={(mode) => patchStore(store, { mode })} />
-          <Segmented<RankPriority>
-            label={t('solver.rank')}
-            value={s.rank}
-            options={[{ value: 'duo', label: t('solver.rank.duo') }, { value: 'buddy', label: t('solver.rank.buddy') }]}
-            onChange={(rank) => patchStore(store, { rank })}
-          />
-          <Segmented<StatPriority>
-            label={t('solver.stat')}
-            value={s.stat}
-            options={[{ value: 'ATK', label: 'ATK' }, { value: 'HP', label: 'HP' }, { value: 'BAL', label: 'Balance' }]}
-            onChange={(stat) => patchStore(store, { stat })}
-          />
+        </div>
+        <p class="note">{t(`solver.mode.hint.${s.mode}` as 'solver.mode.hint.5')}</p>
+
+        <h4 class="ctl-title">{t('solver.sec.card')}</h4>
+        <div class="controls">
           <div class="field">
             <span class="field-label">{t('solver.element')}</span>
             <div class="chips">
@@ -86,8 +85,25 @@ export function SolverControls({ store }: { store: Store<Settings> }) {
               ))}
             </div>
           </div>
+          <Segmented<CardTypePref> label={t('solver.cardType')} value={s.cardType} options={types} onChange={(cardType) => patchStore(store, { cardType })} />
         </div>
-        <p class="note">{t(`solver.mode.hint.${s.mode}` as 'solver.mode.hint.4')}</p>
+        {s.cardType !== 'バランス' && <p class="note">{t('solver.cardType.hint')}</p>}
+
+        <h4 class="ctl-title">{t('solver.sec.ability')}</h4>
+        <div class="controls">
+          <Segmented<RankPriority>
+            label={t('solver.rank')}
+            value={s.rank}
+            options={[{ value: 'duo', label: t('solver.rank.duo') }, { value: 'buddy', label: t('solver.rank.buddy') }]}
+            onChange={(rank) => patchStore(store, { rank })}
+          />
+          <Segmented<StatPriority>
+            label={t('solver.stat')}
+            value={s.stat}
+            options={[{ value: 'ATK', label: 'ATK' }, { value: 'HP', label: 'HP' }, { value: 'BAL', label: 'Balance' }]}
+            onChange={(stat) => patchStore(store, { stat })}
+          />
+        </div>
 
         <details class="weights">
           <summary>{t('solver.weights')}</summary>
