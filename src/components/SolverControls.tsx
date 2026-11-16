@@ -12,6 +12,9 @@ export function weightsOf(s: Settings): Weights {
     crit: { ...DEFAULT_WEIGHTS.crit, 小: s.wCritS, 中: s.wCritM },
     mutualDuo: s.wMutual,
     cardType: s.cardType,
+    element: s.element,
+    magic2Weight: s.wMagic2,
+    magicOtherWeight: s.wMagicOther,
   };
 }
 
@@ -87,6 +90,7 @@ export function SolverControls({ store }: { store: Store<Settings> }) {
           </div>
           <Segmented<CardTypePref> label={t('solver.cardType')} value={s.cardType} options={types} onChange={(cardType) => patchStore(store, { cardType })} />
         </div>
+        {s.element !== null && <p class="note">{t('solver.element.hint')}</p>}
         {s.cardType !== 'バランス' && <p class="note">{t('solver.cardType.hint')}</p>}
 
         <h4 class="ctl-title">{t('solver.sec.ability')}</h4>
@@ -114,6 +118,8 @@ export function SolverControls({ store }: { store: Store<Settings> }) {
             <NumberField label={t('solver.weights.big')} value={s.wBig} onChange={(wBig) => patchStore(store, { wBig })} />
             <NumberField label={t('solver.weights.critS')} value={s.wCritS} onChange={(wCritS) => patchStore(store, { wCritS })} />
             <NumberField label={t('solver.weights.critM')} value={s.wCritM} onChange={(wCritM) => patchStore(store, { wCritM })} />
+            <NumberField label={t('solver.weights.magic2')} value={s.wMagic2} onChange={(wMagic2) => patchStore(store, { wMagic2 })} />
+            <NumberField label={t('solver.weights.magicOther')} value={s.wMagicOther} onChange={(wMagicOther) => patchStore(store, { wMagicOther })} />
             <NumberField label={t('solver.weights.mutual')} value={s.wMutual} onChange={(wMutual) => patchStore(store, { wMutual })} />
           </div>
         </details>

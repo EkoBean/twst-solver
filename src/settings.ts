@@ -20,6 +20,8 @@ export interface Settings {
   wCritS: number;
   wCritM: number;
   wMutual: number;
+  wMagic2: number;
+  wMagicOther: number;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -37,6 +39,8 @@ export const DEFAULT_SETTINGS: Settings = {
   wCritS: 0.5,
   wCritM: 1,
   wMutual: 0.5,
+  wMagic2: 2,
+  wMagicOther: 1,
 };
 
 export const settingsStore = createStore<Settings>('twst-solver/settings/v1', DEFAULT_SETTINGS, (v) =>

@@ -31,6 +31,9 @@ export function TeamCard({ index, label, markName, team, isSupport, weights }: P
         <span class="rank">{label ?? `#${index}`}</span>
         <span class="pill pill-duo">{t('solver.score.duo')} <b>{team.score.duo}</b></span>
         <span class="pill pill-buddy">{t('solver.score.buddy')} <b>{team.score.buddy}</b></span>
+        {weights.element !== null && (
+          <span class="pill pill-type">{t('solver.element.count')} <b>{team.score.elem}</b></span>
+        )}
         {weights.cardType !== 'バランス' && (
           <span class="pill pill-type">{t('solver.cardType.count')} <b>{team.score.typed}</b></span>
         )}

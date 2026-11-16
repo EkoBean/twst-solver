@@ -230,3 +230,39 @@ describe('卡片類型優先：只在 DUO / buddy 同分時決勝，且與暴力
     expect(typed.score.buddy).toBe(base.score.buddy);
   });
 });
+
+describe('魔法屬性加分：M2 優先、M1 / M3 同權，只在 DUO / buddy 同分時決勝', () => {
+  const ELS = ['火', '水', '木', '無'];
+  const W = { ...DEFAULT_WEIGHTS, element: '火' as const, magic2Weight: 2, magicOtherWeight: 1 };
+  const withMagic = (r: () => number, name: string): Card => {
+    const pickEl = () => ELS[Math.floor(r() * 4)] as string;
+    return { ...randomCard(r, name), magic1atr: pickEl(), magic2atr: pickEl(), magic3atr: pickEl() };
+  };
+  const prep = (cards: Card[]) => cards.map((c) => prepareCard(c, true, W));
+
+  it('prepareCard：M2 加 2、M1 與 M3 各加 1', () => {
+    const base = randomCard(rng(1), 'x');
+    const mk = (m1: string, m2: string, m3: string) => prepareCard({ ...base, magic1atr: m1, magic2atr: m2, magic3atr: m3 }, true, W).elemScore;
+    expect(mk('火', '水', '木')).toBe(1);
+    expect(mk('水', '火', '木')).toBe(2);
+    expect(mk('水', '木', '火')).toBe(1);
+    expect(mk('火', '火', '火')).toBe(4);
+    expect(mk('水', '水', '水')).toBe(0);
+  });
+
+  for (const rank of ['duo', 'buddy'] as RankPriority[]) {
+    it(`與暴力枚舉一致 rank=${rank}`, () => {
+      for (let seed = 1; seed <= 8; seed++) {
+        const r = rng(seed * 2909);
+        const owned = prep(Array.from({ length: 11 }, (_, i) => withMagic(r, `o${i}`)));
+        const supports = prep(Array.from({ length: 5 }, (_, i) => withMagic(r, `s${i}`)));
+        const M = 0.5;
+        const b5 = Math.max(...combos(owned, 5).map((t) => scoreTeam(t, rank, M).total));
+        expect(solveOwned(owned, 5, rank, 2, undefined, M)[0]?.score.total, `5 seed=${seed}`).toBe(b5);
+        let b41 = -Infinity;
+        for (const t of combos(owned, 4)) for (const sp of supports) b41 = Math.max(b41, scoreTeam([...t, sp], rank, M).total);
+        expect(solveWithSupport(owned, supports, rank, 2, undefined, M)[0]?.team.score.total, `4+1 seed=${seed}`).toBe(b41);
+      }
+    });
+  }
+});

@@ -60,6 +60,10 @@ export interface Weights {
   mutualDuo: number;
   /** 優先放哪一種類型的卡；バランス = 不管 */
   cardType: CardTypePref;
+  /** 選了魔法屬性時：魔法 2 是該屬性的加分、魔法 1 / 3 是該屬性的加分（兩者相同）。null = 不看屬性 */
+  element: Element | null;
+  magic2Weight: number;
+  magicOtherWeight: number;
 }
 
 export const DEFAULT_WEIGHTS: Weights = {
@@ -69,6 +73,9 @@ export const DEFAULT_WEIGHTS: Weights = {
   crit: { 小: 0.5, 中: 1, 大: 1.5 },
   mutualDuo: 0.5,
   cardType: 'バランス',
+  element: null,
+  magic2Weight: 2,
+  magicOtherWeight: 1,
 };
 
 export interface TeamScore {
@@ -76,6 +83,8 @@ export interface TeamScore {
   buddy: number;
   /** 隊上符合「優先類型」的卡數（優先類型為 バランス 時一律 0） */
   typed: number;
+  /** 隊上各卡「魔法屬性相符加分」的總和（沒選屬性時為 0） */
+  elem: number;
   /** 依 RankPriority 合成的單一排序值 */
   total: number;
 }
