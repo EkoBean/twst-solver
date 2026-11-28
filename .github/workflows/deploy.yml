@@ -1,0 +1,85 @@
+name: Sync data and deploy
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+  schedule:
+    # 比上游 simulator 的更新晚約 30 分鐘。上游 cron 寫 `37 */6 * * *`，
+    # 但實測（2026-11）每天只實際跑兩批：UTC 07:00–07:40 與 19:00–20:25，每次約 20 秒。
+    # 所以我們跑 UTC 08:10（JST 17:10）與 21:00（JST 06:00）。
+    # GitHub 的排程可能延遲，上游若改時間，請依 simulator 的 Actions 紀錄重新調整。
+    - cron: '10 8 * * *'
+    - cron: '0 21 * * *'
+
+permissions:
+  contents: write # gh-pages 需要推送到 gh-pages 分支
+
+# 同一時間只跑一個部署，避免兩次 force push 互相覆蓋
+concurrency:
+  group: pages-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Unit tests
+        run: npm test
+
+      # 卡片資料來自 simulator repo（它每 6 小時從 wiki 更新）。
+      # 資料異常（卡數太少、缺欄位）時這一步會失敗，不會部署壞資料。
+      - name: Sync card data
+        run: npm run sync:data
+
+      # 原圖快取：只有新卡才需要下載（1 秒 1 張）；首次執行約 10 分鐘。
+      - name: Restore icon source cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/icon-src
+          key: icon-src-${{ github.run_id }}
+          restore-keys: icon-src-
+
+      # wiki 回 404（還沒上傳）算 pending，不會讓流程失敗；真正的錯誤才失敗。
+      - name: Download card icons
+        id: icons
+        continue-on-error: true
+        run: npm run sync:icons
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to gh-pages
+        run: |
+          git remote set-url origin https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          npx gh-pages -d dist --no-history --nojekyll
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keep icon report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: icon-report
+          path: .cache/icon-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # 已下載的圖示先部署，再把真正的圖示錯誤標示出來
+      - name: Fail visibly for icon errors
+        if: ${{ !cancelled() && steps.icons.outcome == 'failure' }}
+        run: |
+          echo '::error::Icon download had real errors. See the icon-report artifact.'
+          exit 1
